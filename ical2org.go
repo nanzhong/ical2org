@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/rjhorniii/ics-golang"
 	"log"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/nanzhong/ics-golang"
 )
 
 type args struct {
@@ -121,7 +122,7 @@ func process(a args) {
 	// send referenced arguments
 	for _, url := range a.args {
 		// fmt.Printf( "send filename: %s\n", url)
-		parser.Add()  // another calendar to wait for
+		parser.Add() // another calendar to wait for
 		inputChan <- url
 	}
 
@@ -171,21 +172,21 @@ func process(a args) {
 				eventsSaved++
 				// print the event
 				// choose active or inactive timestamp
-				format := "* %s <%s>\n"
+				format := "* %s\n<%s>--<%s>\n"
 				switch {
 				case a.inactive:
-					format = "* %s [%s]\n"
+					format = "* %s\n[%s]--[%s]\n"
 				case a.active:
-					format = "* %s <%s>\n"
+					format = "* %s\n<%s>--<%s>\n"
 				}
 
-				fmt.Fprintf(f, format, strings.Replace(event.GetSummary(), `\,`, ",", -1), event.GetStart().Format("2006-01-02 Mon 15:04"))
+				fmt.Fprintf(f, format, strings.Replace(event.GetSummary(), `\,`, ",", -1), event.GetStart().Local().Format("2006-01-02 Mon 15:04"), event.GetEnd().Local().Format("2006-01-02 Mon 15:04"))
 				// Scheduled, Deadline, or nothing depending upon switches
 				switch {
 				case a.dead:
-					fmt.Fprintf(f, "    DEADLINE: <%s-%s>\n", event.GetStart().Format("2006-01-02 Mon 15:04"), event.GetEnd().Format("15:04"))
+					fmt.Fprintf(f, "    DEADLINE: <%s>--<%s>\n", event.GetStart().Local().Format("2006-01-02 Mon 15:04"), event.GetEnd().Local().Format("15:04"))
 				case a.sched:
-					fmt.Fprintf(f, "    SCHEDULED: <%s-%s>\n", event.GetStart().Format("2006-01-02 Mon 15:04"), event.GetEnd().Format("15:04"))
+					fmt.Fprintf(f, "    SCHEDULED: <%s>--<%s>\n", event.GetStart().Local().Format("2006-01-02 Mon 15:04"), event.GetEnd().Local().Format("15:04"))
 				default:
 				}
 				// Print drawer contents
@@ -195,9 +196,9 @@ func process(a args) {
 					fmt.Fprintf(f, "  :CONVERTLABEL: %s\n", a.label)
 				}
 				fmt.Fprintf(f, "  :ORIGINAL-UID: %s\n", event.GetImportedID())
-				fmt.Fprintf(f, "  :DTSTART: %s\n", event.GetStart().Format("2006-01-02 15:04"))
-				fmt.Fprintf(f, "  :DTEND: %s\n", event.GetEnd().Format("2006-01-02 15:04"))
-				fmt.Fprintf(f, "  :DTSTAMP: %s\n", event.GetDTStamp().Format("2006-01-02 15:04"))
+				fmt.Fprintf(f, "  :DTSTART: %s\n", event.GetStart().Format("2006-01-02 15:04Z07:00"))
+				fmt.Fprintf(f, "  :DTEND: %s\n", event.GetEnd().Format("2006-01-02 15:04Z07:00"))
+				fmt.Fprintf(f, "  :DTSTAMP: %s\n", event.GetDTStamp().Format("2006-01-02 15:04Z07:00"))
 				for _, attendee := range event.GetAttendees() {
 					fmt.Fprintf(f, "  :ATTENDEE: %v\n", attendee)
 				}
@@ -228,8 +229,8 @@ func process(a args) {
 		if a.count {
 			fmt.Fprintf(os.Stdout, " New events written: %d\n", eventsSaved)
 			errors, _ := parser.GetErrors()
-			if( len(errors) != 0) {
-				fmt.Printf( "errors occurred %v\n", errors)
+			if len(errors) != 0 {
+				fmt.Printf("errors occurred %v\n", errors)
 			}
 		}
 	} else {
